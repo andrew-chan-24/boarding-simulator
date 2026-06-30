@@ -5,7 +5,7 @@ airplane boarding strategies in real time.
 
 Built with **React**, **HTML5 Canvas** and **D3.js**.
 
-🌐 **[Live Demo](https://YOUR_USERNAME.github.io/airplane-boarding)**
+🌐 **[Live Demo](https://andrew-chan-24.github.io/airplane-boarding)**
 
 ---
 
