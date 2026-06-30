@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+# ── Grant the Actions bot write access to the repo ──
+permissions:
+  contents: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
