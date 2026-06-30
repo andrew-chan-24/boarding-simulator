@@ -5,7 +5,6 @@ on:
     branches:
       - main
 
-# ── Grant the Actions bot write access to the repo ──
 permissions:
   contents: write
 
@@ -28,6 +27,15 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # ── Print built index.html so we can verify it in the Actions log ──
+      - name: Verify build output
+        run: |
+          echo "=== dist/index.html ==="
+          cat dist/index.html
+          echo ""
+          echo "=== dist/assets/ ==="
+          ls dist/assets/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
