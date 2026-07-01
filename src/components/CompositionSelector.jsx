@@ -9,14 +9,16 @@ export default function CompositionSelector({
   disabled,
   isOpen,
   onToggle,
+  mode,           // 'random' | 'manual'
+  onModeChange,
 }) {
-  const total = Object.values(composition).reduce((a, b) => a + b, 0);
-  const valid = total === 100;
+  const safeComp = composition || DEFAULT_COMPOSITION;
+  const total    = Object.values(safeComp).reduce((a, b) => a + b, 0);
+  const valid    = mode === 'manual' || total === 100;
 
   const handleChange = (type, raw) => {
-    const val    = Math.max(0, Math.min(100, Number(raw) || 0));
-    const newComp = { ...composition, [type]: val };
-    onChange(newComp);
+    const val     = Math.max(0, Math.min(100, Number(raw) || 0));
+    onChange({ ...safeComp, [type]: val });
   };
 
   const handleReset = () => onChange({ ...DEFAULT_COMPOSITION });
@@ -31,27 +33,29 @@ export default function CompositionSelector({
           <div>
             <div style={styles.headerTitle}>Passenger Mix</div>
             <div style={styles.headerSub}>
-              {TYPES.map(t => (
-                <span key={t} style={{ color: PASSENGER_TYPES[t].colour }}>
-                  {PASSENGER_TYPES[t].icon}{composition[t]}%{' '}
-                </span>
-              ))}
+              {mode === 'random' ? (
+                TYPES.map(t => (
+                  <span key={t} style={{ color: PASSENGER_TYPES[t].colour }}>
+                    {PASSENGER_TYPES[t].icon}{safeComp[t]}%{' '}
+                  </span>
+                ))
+              ) : (
+                <span style={{ color: '#88C0D0' }}>Manual seat assignment</span>
+              )}
             </div>
           </div>
         </div>
         <div style={styles.headerRight}>
-          {!valid && (
+          {mode === 'random' && !valid && (
             <span style={styles.warning}>⚠ {total}%</span>
           )}
-          {valid && (
-            <span style={styles.valid}>✓ 100%</span>
+          {mode === 'random' && valid && (
+            <span style={styles.validLabel}>✓ 100%</span>
           )}
           <span style={{
             ...styles.chevron,
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-          }}>
-            ▾
-          </span>
+          }}>▾</span>
         </div>
       </button>
 
@@ -59,104 +63,123 @@ export default function CompositionSelector({
       {isOpen && (
         <div style={styles.body}>
 
-          {TYPES.map(type => {
-            const pt = PASSENGER_TYPES[type];
-            return (
-              <div key={type} style={styles.row}>
-
-                {/* Label */}
-                <div style={styles.typeLabel}>
-                  <span style={styles.typeIcon}>{pt.icon}</span>
-                  <div>
-                    <div style={{ ...styles.typeName, color: pt.colour }}>
-                      {pt.label}
-                    </div>
-                    <div style={styles.typeStat}>
-                      Stow: {pt.luggage} steps
-                    </div>
-                  </div>
-                </div>
-
-                {/* Slider */}
-                <div style={styles.sliderWrap}>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    step={5}
-                    value={composition[type]}
-                    disabled={disabled}
-                    onChange={e => handleChange(type, e.target.value)}
-                    style={{ ...styles.slider, accentColor: pt.colour }}
-                  />
-                </div>
-
-                {/* Number input */}
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={5}
-                  value={composition[type]}
-                  disabled={disabled}
-                  onChange={e => handleChange(type, e.target.value)}
-                  style={styles.numInput}
-                />
-                <span style={styles.pct}>%</span>
-
-              </div>
-            );
-          })}
-
-          {/* Total indicator */}
-          <div style={styles.totalRow}>
-            <div style={{
-              ...styles.totalBar,
-              background: valid ? '#A3BE8C22' : '#BF616A22',
-              border    : `1px solid ${valid ? '#A3BE8C' : '#BF616A'}`,
-            }}>
-              <span style={{ color: valid ? '#A3BE8C' : '#BF616A', fontWeight: 'bold' }}>
-                Total: {total}%
-              </span>
-              {!valid && (
-                <span style={{ color: '#BF616A', fontSize: '11px', marginLeft: '8px' }}>
-                  Must equal 100%
-                </span>
-              )}
+          {/* ── Mode toggle switch ── */}
+          <div style={styles.modeRow}>
+            <span style={styles.modeLabel}>Distribution mode:</span>
+            <div style={styles.toggle}>
+              <button
+                onClick={() => onModeChange('random')}
+                disabled={disabled}
+                style={{
+                  ...styles.toggleBtn,
+                  background  : mode === 'random' ? '#5E81AC' : '#2E3440',
+                  color       : mode === 'random' ? '#ECEFF4' : '#6B7A8D',
+                  borderRadius: '6px 0 0 6px',
+                }}
+              >
+                🎲 Random
+              </button>
+              <button
+                onClick={() => onModeChange('manual')}
+                disabled={disabled}
+                style={{
+                  ...styles.toggleBtn,
+                  background  : mode === 'manual' ? '#5E81AC' : '#2E3440',
+                  color       : mode === 'manual' ? '#ECEFF4' : '#6B7A8D',
+                  borderRadius: '0 6px 6px 0',
+                }}
+              >
+                ✏️ Manual
+              </button>
             </div>
-            <button
-              onClick={handleReset}
-              disabled={disabled}
-              style={styles.resetBtn}
-            >
-              Reset
-            </button>
           </div>
 
-          {/* Stow time reference */}
-          <div style={styles.reference}>
-            <div style={styles.refTitle}>Luggage stow times</div>
-            <div style={styles.refGrid}>
+          {/* ── Random mode: sliders ── */}
+          {mode === 'random' && (
+            <>
               {TYPES.map(type => {
                 const pt = PASSENGER_TYPES[type];
                 return (
-                  <div key={type} style={styles.refItem}>
-                    <span style={styles.typeIcon}>{pt.icon}</span>
-                    <div
-                      style={{
-                        ...styles.refBar,
-                        width      : `${(pt.luggage / 6) * 100}%`,
-                        background : pt.colour,
-                      }}
+                  <div key={type} style={styles.row}>
+                    <div style={styles.typeLabel}>
+                      <span style={styles.typeIcon}>{pt.icon}</span>
+                      <div>
+                        <div style={{ ...styles.typeName, color: pt.colour }}>
+                          {pt.label}
+                        </div>
+                        <div style={styles.typeStat}>
+                          Stow: {pt.luggage} steps
+                        </div>
+                      </div>
+                    </div>
+                    <div style={styles.sliderWrap}>
+                      <input
+                        type="range"
+                        min={0} max={100} step={5}
+                        value={safeComp[type]}
+                        disabled={disabled}
+                        onChange={e => handleChange(type, e.target.value)}
+                        style={{ ...styles.slider, accentColor: pt.colour }}
+                      />
+                    </div>
+                    <input
+                      type="number"
+                      min={0} max={100} step={5}
+                      value={safeComp[type]}
+                      disabled={disabled}
+                      onChange={e => handleChange(type, e.target.value)}
+                      style={styles.numInput}
                     />
-                    <span style={{ color: pt.colour, fontSize: '11px' }}>
-                      {pt.luggage}
-                    </span>
+                    <span style={styles.pct}>%</span>
                   </div>
                 );
               })}
+
+              {/* Total indicator */}
+              <div style={styles.totalRow}>
+                <div style={{
+                  ...styles.totalBar,
+                  background : valid ? '#A3BE8C22' : '#BF616A22',
+                  border     : `1px solid ${valid ? '#A3BE8C' : '#BF616A'}`,
+                }}>
+                  <span style={{
+                    color      : valid ? '#A3BE8C' : '#BF616A',
+                    fontWeight : 'bold',
+                  }}>
+                    Total: {total}%
+                  </span>
+                  {!valid && (
+                    <span style={{
+                      color     : '#BF616A',
+                      fontSize  : '11px',
+                      marginLeft: '8px',
+                    }}>
+                      Must equal 100%
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={handleReset}
+                  disabled={disabled}
+                  style={styles.resetBtn}
+                >
+                  Reset
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── Manual mode: info ── */}
+          {mode === 'manual' && (
+            <div style={styles.manualInfo}>
+              <div style={styles.manualInfoIcon}>✏️</div>
+              <div style={styles.manualInfoText}>
+                The seat map will appear in the main panel.
+                Click any seat to cycle through passenger types.
+                The composition counts will update automatically.
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
       )}
@@ -189,9 +212,7 @@ const styles = {
     alignItems : 'center',
     gap        : '10px',
   },
-  headerIcon : {
-    fontSize : '18px',
-  },
+  headerIcon  : { fontSize: '18px' },
   headerTitle : {
     fontSize      : '13px',
     fontWeight    : 'bold',
@@ -208,16 +229,8 @@ const styles = {
     alignItems : 'center',
     gap        : '8px',
   },
-  warning : {
-    color      : '#BF616A',
-    fontSize   : '11px',
-    fontWeight : 'bold',
-  },
-  valid : {
-    color      : '#A3BE8C',
-    fontSize   : '11px',
-    fontWeight : 'bold',
-  },
+  warning    : { color: '#BF616A', fontSize: '11px', fontWeight: 'bold' },
+  validLabel : { color: '#A3BE8C', fontSize: '11px', fontWeight: 'bold' },
   chevron : {
     fontSize   : '18px',
     color      : '#6B7A8D',
@@ -225,15 +238,38 @@ const styles = {
     lineHeight : 1,
   },
   body : {
-    padding   : '8px 16px 14px',
+    padding   : '12px 16px 14px',
     borderTop : '1px solid #4C566A',
   },
+  modeRow : {
+    display      : 'flex',
+    alignItems   : 'center',
+    gap          : '10px',
+    marginBottom : '14px',
+    flexWrap     : 'wrap',
+  },
+  modeLabel : {
+    color    : '#A0AABB',
+    fontSize : '12px',
+  },
+  toggle : {
+    display : 'flex',
+  },
+  toggleBtn : {
+    padding    : '6px 14px',
+    border     : '1px solid #4C566A',
+    cursor     : 'pointer',
+    fontSize   : '12px',
+    fontWeight : '600',
+    fontFamily : 'inherit',
+    transition : 'all 0.15s',
+  },
   row : {
-    display    : 'flex',
-    alignItems : 'center',
-    gap        : '8px',
-    padding    : '6px 0',
-    borderBottom: '1px solid #2E344022',
+    display      : 'flex',
+    alignItems   : 'center',
+    gap          : '8px',
+    padding      : '6px 0',
+    borderBottom : '1px solid #2E344022',
   },
   typeLabel : {
     display    : 'flex',
@@ -241,24 +277,11 @@ const styles = {
     gap        : '6px',
     minWidth   : '90px',
   },
-  typeIcon : {
-    fontSize : '16px',
-  },
-  typeName : {
-    fontSize   : '12px',
-    fontWeight : '600',
-  },
-  typeStat : {
-    fontSize : '10px',
-    color    : '#6B7A8D',
-  },
-  sliderWrap : {
-    flex : 1,
-  },
-  slider : {
-    width  : '100%',
-    cursor : 'pointer',
-  },
+  typeIcon   : { fontSize: '16px' },
+  typeName   : { fontSize: '12px', fontWeight: '600' },
+  typeStat   : { fontSize: '10px', color: '#6B7A8D' },
+  sliderWrap : { flex: 1 },
+  slider     : { width: '100%', cursor: 'pointer' },
   numInput : {
     width        : '44px',
     background   : '#2E3440',
@@ -270,11 +293,7 @@ const styles = {
     textAlign    : 'center',
     fontFamily   : 'inherit',
   },
-  pct : {
-    color    : '#6B7A8D',
-    fontSize : '12px',
-    minWidth : '12px',
-  },
+  pct : { color: '#6B7A8D', fontSize: '12px', minWidth: '12px' },
   totalRow : {
     display    : 'flex',
     alignItems : 'center',
@@ -297,34 +316,19 @@ const styles = {
     fontSize     : '11px',
     fontFamily   : 'inherit',
   },
-  reference : {
-    marginTop  : '12px',
-    background : '#2E3440',
-    borderRadius: '6px',
-    padding    : '8px 10px',
+  manualInfo : {
+    display      : 'flex',
+    alignItems   : 'flex-start',
+    gap          : '10px',
+    background   : '#2E3440',
+    borderRadius : '8px',
+    padding      : '12px',
+    marginTop    : '4px',
   },
-  refTitle : {
-    color         : '#6B7A8D',
-    fontSize      : '10px',
-    fontWeight    : '600',
-    textTransform : 'uppercase',
-    letterSpacing : '0.05em',
-    marginBottom  : '6px',
-  },
-  refGrid : {
-    display       : 'flex',
-    flexDirection : 'column',
-    gap           : '4px',
-  },
-  refItem : {
-    display    : 'flex',
-    alignItems : 'center',
-    gap        : '6px',
-  },
-  refBar : {
-    height       : '6px',
-    borderRadius : '3px',
-    transition   : 'width 0.2s',
-    minWidth     : '4px',
+  manualInfoIcon : { fontSize: '20px', flexShrink: 0 },
+  manualInfoText : {
+    color      : '#88C0D0',
+    fontSize   : '12px',
+    lineHeight : '1.6',
   },
 };

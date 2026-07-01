@@ -11,24 +11,16 @@ class Passenger {
     this.id            = id;
     this.targetRow     = targetRow;
     this.targetSeat    = targetSeat;
-    this.passengerType = passengerType;   // 'male' | 'female' | 'elderly' | 'child'
+    this.passengerType = passengerType;
     this.aislePos      = -1;
     this.aisleIdx      = 0;
     this.stowTimer     = 0;
     this.state         = STATE.QUEUE;
   }
 
-  get luggageTime() {
-    return PASSENGER_TYPES[this.passengerType]?.luggage ?? 3;
-  }
-
-  get typeColour() {
-    return PASSENGER_TYPES[this.passengerType]?.colour ?? '#5E81AC';
-  }
-
-  get seatedColour() {
-    return PASSENGER_TYPES[this.passengerType]?.seatedColour ?? '#4C7099';
-  }
+  get luggageTime()    { return PASSENGER_TYPES[this.passengerType]?.luggage      ?? 3; }
+  get typeColour()     { return PASSENGER_TYPES[this.passengerType]?.colour        ?? '#5E81AC'; }
+  get seatedColour()   { return PASSENGER_TYPES[this.passengerType]?.seatedColour  ?? '#4C7099'; }
 }
 
 // ─────────────────────────────────────────────
@@ -64,19 +56,27 @@ function restoreState(sim, snap) {
 //  SIMULATION
 // ─────────────────────────────────────────────
 export class BoardingSim {
-  constructor(boardingOrder, aircraft, composition) {
+  /**
+   * @param boardingOrder  array of { row, seat }
+   * @param aircraft       aircraft config object
+   * @param typeList       flat array of passenger type strings,
+   *                       indexed by (row * seatsPerRow + seatIndex)
+   *                       This is pre-built so both random and manual
+   *                       assignment use the same constructor.
+   */
+  constructor(boardingOrder, aircraft, typeList) {
     this.aircraft  = aircraft;
     this.numRows   = aircraft.rows;
     this.numSeats  = seatsPerRow(aircraft);
     this.numAisles = aircraft.aisles;
     this.paxTotal  = totalPax(aircraft);
 
-    // Assign a passenger type to every seat
-    const typeList = assignPassengerTypes(this.paxTotal, composition);
-
     this.passengers = boardingOrder.map(({ row, seat }, i) => {
-      const p    = new Passenger(i, row, seat, typeList[i]);
-      p.aisleIdx = this._nearestAisle(seat);
+      // Look up the passenger type from the seat map
+      const seatMapIdx   = row * this.numSeats + seat;
+      const passengerType = typeList[seatMapIdx] || 'male';
+      const p             = new Passenger(i, row, seat, passengerType);
+      p.aisleIdx          = this._nearestAisle(seat);
       return p;
     });
 
@@ -154,7 +154,7 @@ export class BoardingSim {
         // Case B — reached target row
         if (row === p.targetRow) {
           p.state     = STATE.STOWING;
-          p.stowTimer = p.luggageTime;   // ← type-specific luggage time
+          p.stowTimer = p.luggageTime;
           continue;
         }
 

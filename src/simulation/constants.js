@@ -68,40 +68,42 @@ export const DEFAULT_AIRCRAFT = 'A321';
 // ─────────────────────────────────────────────
 export const PASSENGER_TYPES = {
   male: {
-    label      : 'Male',
-    icon       : '🧑',
-    luggage    : 3,       // steps to stow
-    walkSpeed  : 1,
-    colour     : '#5E81AC',   // blue
-    seatedColour: '#4C7099',
+    label        : 'Male',
+    icon         : '🧑',
+    luggage      : 3,
+    walkSpeed    : 1,
+    colour       : '#5E81AC',
+    seatedColour : '#4C7099',
   },
   female: {
-    label      : 'Female',
-    icon       : '👩',
-    luggage    : 4,       // slightly longer — handbag + overhead
-    walkSpeed  : 1,
-    colour     : '#B48EAD',   // purple
-    seatedColour: '#9A7599',
+    label        : 'Female',
+    icon         : '👩',
+    luggage      : 4,
+    walkSpeed    : 1,
+    colour       : '#B48EAD',
+    seatedColour : '#9A7599',
   },
   elderly: {
-    label      : 'Elderly',
-    icon       : '🧓',
-    luggage    : 6,       // slowest — needs more time
-    walkSpeed  : 0.7,
-    colour     : '#D08770',   // orange
-    seatedColour: '#B5705A',
+    label        : 'Elderly',
+    icon         : '🧓',
+    luggage      : 6,
+    walkSpeed    : 0.7,
+    colour       : '#D08770',
+    seatedColour : '#B5705A',
   },
   child: {
-    label      : 'Child',
-    icon       : '🧒',
-    luggage    : 2,       // fastest — small bag or no bag
-    walkSpeed  : 1.2,
-    colour     : '#A3BE8C',   // green
-    seatedColour: '#8AA876',
+    label        : 'Child',
+    icon         : '🧒',
+    luggage      : 2,
+    walkSpeed    : 1.2,
+    colour       : '#A3BE8C',
+    seatedColour : '#8AA876',
   },
 };
 
-// Default composition as percentages (must sum to 100)
+// Cycle order when clicking a seat in manual mode
+export const PASSENGER_TYPE_CYCLE = ['male', 'female', 'elderly', 'child'];
+
 export const DEFAULT_COMPOSITION = {
   male    : 40,
   female  : 40,
@@ -121,8 +123,8 @@ export function totalPax(aircraft) {
 }
 
 /**
- * Assign a passenger type to each seat based on composition percentages.
- * Returns a flat array of type strings, one per seat in boarding order.
+ * Assign passenger types randomly based on composition percentages.
+ * Returns a flat array of type strings, one per seat.
  */
 export function assignPassengerTypes(totalSeats, composition) {
   const types  = [];
@@ -156,9 +158,15 @@ export function assignPassengerTypes(totalSeats, composition) {
 }
 
 /**
- * Build a seat-index → { section, seatInSection, type } map.
- * type: 'window' | 'middle' | 'aisle'
+ * Build initial manual seat assignment map.
+ * Returns a flat array of type strings indexed by
+ * (row * seatsPerRow + seatIndex).
  */
+export function buildDefaultSeatMap(aircraft, composition) {
+  const total = totalPax(aircraft);
+  return assignPassengerTypes(total, composition);
+}
+
 export function buildSeatMeta(aircraft) {
   const meta   = [];
   const layout = aircraft.layout;
@@ -205,10 +213,7 @@ export function buildSeatMeta(aircraft) {
   return meta;
 }
 
-// ─────────────────────────────────────────────
-//  SIMULATION TIMING
-// ─────────────────────────────────────────────
-export const LUGGAGE_TIME = 3;   // fallback if no passenger type
+export const LUGGAGE_TIME = 3;
 export const WALK_SPEED   = 1;
 
 // ─────────────────────────────────────────────

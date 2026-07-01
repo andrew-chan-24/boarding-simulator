@@ -1,7 +1,8 @@
-import { useState, useRef, useCallback }              from 'react';
-import { BoardingSim }                                from '../simulation/boardingSim';
-import { BOARDING_METHODS }                           from '../simulation/boardingOrders';
-import { AIRCRAFT, DEFAULT_AIRCRAFT, DEFAULT_COMPOSITION } from '../simulation/constants';
+import { useState, useRef, useCallback }                   from 'react';
+import { BoardingSim }                                     from '../simulation/boardingSim';
+import { BOARDING_METHODS }                                from '../simulation/boardingOrders';
+import { AIRCRAFT, DEFAULT_AIRCRAFT, DEFAULT_COMPOSITION,
+         assignPassengerTypes, totalPax, seatsPerRow }     from '../simulation/constants';
 
 export function useSimulation() {
   const simRef        = useRef(null);
@@ -14,11 +15,16 @@ export function useSimulation() {
     if (simRef.current) setProgress({ ...simRef.current.getProgress() });
   }, []);
 
-  const start = useCallback((method, acKey, composition) => {
+  /**
+   * @param method      boarding method name
+   * @param acKey       aircraft key
+   * @param typeList    flat array of passenger type strings per seat
+   */
+  const start = useCallback((method, acKey, typeList) => {
     const orderFn  = BOARDING_METHODS[method];
     const aircraft = AIRCRAFT[acKey];
     if (!orderFn || !aircraft) return;
-    simRef.current = new BoardingSim(orderFn(aircraft), aircraft, composition);
+    simRef.current = new BoardingSim(orderFn(aircraft), aircraft, typeList);
     setMethodName(method);
     setAircraftKey(acKey);
     setProgress(simRef.current.getProgress());
